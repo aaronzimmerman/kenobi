@@ -14,30 +14,29 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-public class MidiFileNoteIterator implements DataSetIterator {
+public class RelationshipIterator implements DataSetIterator {
   private static final Logger logger = LoggerFactory.getLogger(MidiFileNoteIterator.class);
 
-  private final int numNotes = Util.NOTES.size(); //the total available pitches to choose from
   int exampleLength;
   int examplesSoFar = 0;
-  List<Note> notes;
+  List<Relationship> relationships;
   Random random = new Random();
   int numExamplesToFetch = 1;
   int miniBatchSize = 1;
   int timesToRun = 5;
 
-  public MidiFileNoteIterator(String filePath, int track) throws MidiUnavailableException, InvalidMidiDataException, IOException {
+  public RelationshipIterator(String filePath, int track) throws MidiUnavailableException, InvalidMidiDataException, IOException {
     MidiLoader loader = new MidiLoader(filePath);
 
     logger.info("Found {} tracks in midi file {}", loader.numTracks(), filePath);
 
-    notes = loader.trackAsArrayList(track);
+    relationships = loader.getRelationships(track);
 
-    if (notes.size() == 0){
+    if (relationships.size() == 0){
       logger.error("No notes in track {} of {}", track, filePath);
     }
-    logger.info("Found {} notes to study", notes.size());
-    exampleLength = notes.size();
+
+    exampleLength = relationships.size();
   }
 
   public int getRandomNote(){
@@ -52,9 +51,26 @@ public class MidiFileNoteIterator implements DataSetIterator {
     return next(1);
   }
 
+  public int indexOfRelationship(Relationship r) {
+    return Relationship.IDX.get(r);
+  }
+
+  public boolean isKnown(Relationship r) {
+    if (Relationship.IDX.containsKey(r)) {
+      return true;
+    } else {
+      logger.info("Relationship {} is not known", r);
+      return false;
+    }
+  }
+
+  public int numRelationships() {
+    return Relationship.ALL.size();
+  }
+
   public DataSet next(int num) {
-    INDArray input = Nd4j.zeros(new int[]{num,Util.NOTES.size(),exampleLength});
-    INDArray labels = Nd4j.zeros(new int[]{num,Util.NOTES.size(),exampleLength});
+    INDArray input = Nd4j.zeros(new int[]{num, numRelationships(), exampleLength});
+    INDArray labels = Nd4j.zeros(new int[]{num, numRelationships(), exampleLength});
 
     //Randomly select a subset of the file. No attempt is made to avoid overlapping subsets
     // of the file in the same minibatch
@@ -63,26 +79,24 @@ public class MidiFileNoteIterator implements DataSetIterator {
       int endIdx = exampleLength;
       int scanLength = 0;
 
-      Note note = notes.get(startIdx);
-      if (!Util.NOTE_TO_INDEX.containsKey(note)) {
-        logger.error("note not found = " + note);
+      Relationship rel = relationships.get(startIdx);
+      if (!isKnown(rel)) {
         continue;
       }
 
-      int currCharIdx = Util.NOTE_TO_INDEX.get(notes.get(startIdx));	//Current input
+      int currRelIdx = indexOfRelationship(relationships.get(startIdx));	//Current input
       int c=0;
       for( int j=startIdx+1; j<endIdx; j++, c++ ){
 
-        Note newNote = notes.get(j);
-        if (!Util.NOTE_TO_INDEX.containsKey(newNote)) {
-          logger.error("note not found = " + newNote);
+        Relationship nextRel = relationships.get(j);
+        if (!isKnown(rel)) {
           continue;
         }
-       // System.out.println("newNote = " + newNote);
-        int nextCharIdx = Util.NOTE_TO_INDEX.get(newNote);		//Next character to predict
-        input.putScalar(new int[]{i,currCharIdx,c}, 1.0);
-        labels.putScalar(new int[]{i,nextCharIdx,c}, 1.0);
-        currCharIdx = nextCharIdx;
+
+        int nextRelIdx = indexOfRelationship(nextRel);
+        input.putScalar(new int[]{i,currRelIdx,c}, 1.0);
+        labels.putScalar(new int[]{i,nextRelIdx,c}, 1.0);
+        currRelIdx = nextRelIdx;
       }
     }
 
@@ -95,11 +109,11 @@ public class MidiFileNoteIterator implements DataSetIterator {
   }
 
   public int inputColumns() {
-    return numNotes;
+    return numRelationships();
   }
 
   public int totalOutcomes() {
-    return numNotes;
+    return numRelationships();
   }
 
   public void reset() {
@@ -115,7 +129,7 @@ public class MidiFileNoteIterator implements DataSetIterator {
   }
 
   public int numExamples() {
-    return numNotes;
+    return numRelationships();
   }
 
   public void setPreProcessor(DataSetPreProcessor preProcessor) {

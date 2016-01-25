@@ -22,6 +22,9 @@ public class Util {
 
   private static final List<Integer> durations = Lists.newArrayList(1, 2,3,4,6,8,10,12,14,16);
 
+
+  //if we play up to four at once
+  //and allow tuples
   static {
     int counter = 0;
     for (int i = 0; i<127; i++) { //available midi notes

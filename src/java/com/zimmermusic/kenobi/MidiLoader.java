@@ -1,11 +1,14 @@
 package com.zimmermusic.kenobi;
 
+import com.google.common.collect.Lists;
+
 import javax.sound.midi.MidiSystem;
 import javax.sound.midi.Sequence;
 import javax.sound.midi.ShortMessage;
 import javax.sound.midi.Track;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 
 class MidiLoader {
@@ -30,7 +33,7 @@ class MidiLoader {
       Sequence mySeq = MidiSystem.getSequence(myMidiFile);
       trx = mySeq.getTracks();
 
-
+      //TODO:  how do I handle notes played together
       for (int i = 0; i < trx.length; i++) {
         ArrayList<Note> trackAsList = new ArrayList<Note>();
         tracks.add(trackAsList);
@@ -55,9 +58,7 @@ class MidiLoader {
               //if the first note has zero velocity (== noteOff), remove it
               if (vel == 0) {
                 t.remove(t.get(0));
-              }
-
-              else {
+              } else {
                 //start to look for the associated note off
                 for (int j = 0; j < t.size(); j++) {
                   if (t.get(j).getMessage() instanceof ShortMessage) {
@@ -107,6 +108,18 @@ class MidiLoader {
   }
   int numTracks() {
     return tracks.size();
+  }
+
+  public List<Relationship> getRelationships(int track) {
+    List<Note> notes = trackAsArrayList(track);
+    List<Relationship> relationships = Lists.newArrayList();
+
+    for (int i = 1; i<notes.size(); i++) {
+      Note first = notes.get(i-1);
+      Note second = notes.get(i);
+      relationships.add(Relationship.ofNotes(first, second));
+    }
+    return relationships;
   }
 }
 //

@@ -52,7 +52,7 @@ public class Kenobi {
     ForcePowers.saveNetwork(network, modelPath);
   }
 
-  public void study(String path, int numEpochs) {
+  public void study(String path) {
     File f = new File(path);
     if (!f.exists()) {
       logger.error("File {} does not exist", path);
@@ -61,8 +61,12 @@ public class Kenobi {
 
     if (f.isDirectory()) {
       for (File file : f.listFiles()) {
+        if (file.isHidden()) {
+          logger.info("Skipping hidden file {}", file.getName());
+          continue;
+        }
         try {
-          studyMidiFile(file.getAbsolutePath(), numEpochs);
+          studyMidiFile(file.getAbsolutePath());
         } catch (Exception e) {
           logger.error("Unable to study file {}", file);
           logger.error("Exception", e);
@@ -70,7 +74,7 @@ public class Kenobi {
       }
     } else {
       try {
-        studyMidiFile(f.getAbsolutePath(), numEpochs);
+        studyMidiFile(f.getAbsolutePath());
       } catch (Exception e) {
         logger.error("Unable to study file {}", path);
         logger.error("Exception", e);
@@ -78,14 +82,15 @@ public class Kenobi {
     }
   }
 
-  public void studyMidiFile(String file, int numEpochs) throws MidiUnavailableException, InvalidMidiDataException, IOException {
+  public void studyMidiFile(String file) throws MidiUnavailableException, InvalidMidiDataException, IOException {
     MidiFileNoteIterator notes = new MidiFileNoteIterator(file, 1);
 
-    logger.info("Studying {} {} times", file, numEpochs);
+    logger.info("Studying {}", file);
 
     List<Note> firstNoteOfComp = Lists.newArrayList(new Note(60, 2));
     //Do training, and then generate and print samples from network
-    for( int i=0; i<numEpochs; i++ ){
+   // for( int i=0; i<numEpochs; i++ ){
+
       network.fit(notes);
 
       List<List<Note>> sample = compose2(1, firstNoteOfComp, 10);
@@ -94,7 +99,7 @@ public class Kenobi {
         logger.info("Pitch: {}, Duration: {}", note.midiPitch, note.duration);
       }
       notes.reset();	//Reset iterator for another epoch
-    }
+   // }
   }
 
   /**
@@ -103,7 +108,7 @@ public class Kenobi {
    * @param note
    * @return
    */
-  public Note addNoteAndGetNext(Note note) {
+  public Note step(Note note) {
     INDArray nextInput = Nd4j.zeros(1,numOutcomes);
     int s = 0;
 
@@ -172,6 +177,62 @@ public class Kenobi {
 
     return melodies;
   }
+
+  private List<List<Note>>  composeFromRelationships(int numSamples, List<Note> initialization, int notesToSample) {
+      List<List<Note>> melodies = Lists.newArrayList();
+
+      //Create input for initialization
+      INDArray initializationInput = Nd4j.zeros(numSamples,numOutcomes, 1);
+
+      //MUST be at least two notes
+      for( int i=1; i<initialization.size(); i++ ){
+        Relationship r = Relationship.ofNotes(initialization.get(i-1), initialization.get(i));
+        int idx = Relationship.indexOf(r);
+        for( int j=0; j<numSamples; j++ ){
+          initializationInput.putScalar(new int[]{j,idx,i}, 1.0f);
+        }
+      }
+
+      StringBuilder[] sb = new StringBuilder[numSamples];
+      for( int i=0; i<numSamples; i++ ) {
+        sb[i] = new StringBuilder();
+        melodies.add(new ArrayList<Note>());
+        for (Note n : initialization) {
+          sb[i].append(n.toString());
+        }
+      }
+
+      network.rnnClearPreviousState();
+      INDArray output = network.rnnTimeStep(initializationInput);
+      output = output.tensorAlongDimension(output.size(2)-1,1,0);
+
+      Note prev = initialization.get(initialization.size() - 1);
+
+      for( int i=0; i<notesToSample; i++ ){
+        //Set up next input (single time step) by sampling from previous output
+        INDArray nextInput = Nd4j.zeros(numSamples,numOutcomes);
+        //Output is a probability distribution. Sample from this for each example we want to generate, and add it to the new input
+        for( int s=0; s<numSamples; s++ ){
+          double[] outputProbDistribution = new double[numOutcomes];
+          for( int j=0; j<outputProbDistribution.length; j++ ) outputProbDistribution[j] = output.getDouble(s,j);
+          int samplesRelationshipIdx = ForcePowers.sampleFromDistribution(outputProbDistribution, random);
+          nextInput.putScalar(new int[]{s,samplesRelationshipIdx}, 1.0f);		//Prepare next time step input
+          sb[s].append(Util.NOTES.get(samplesRelationshipIdx));	//Add sampled character to StringBuilder (human readable output)
+
+          Relationship r = Relationship.ALL.get(samplesRelationshipIdx);
+
+          Note next = r.apply(prev);
+          melodies.get(s).add(next);	//Apply the relationship to a note, getting a pitch and duration from comparisons
+          prev = next;
+        }
+
+        output = network.rnnTimeStep(nextInput);	//Do one time step of forward pass
+      }
+
+      return melodies;
+  }
+
+
   //java com.zimmermusic.kenobi.Kenobi model train cs1-1.mid
   public static void main(String[] args) throws Exception {
     String modelPath = args[0];
@@ -181,13 +242,22 @@ public class Kenobi {
 
     switch(action) {
       case "train":
-        //java com.zimmermusic.kenobi.Kenobi model train 10 resources
+        //java com.zimmermusic.kenobi.Kenobi resources/model train 10 resources
         int numEpochs = Integer.parseInt(args[2]);
         String file = args[3];
-        kenobi.study(file, numEpochs);
+        for (int i = 0; i < numEpochs; i++) {
+          logger.info("*******************");
+          long start = System.currentTimeMillis();
+          logger.info("Beginning epoch " + i);
+
+          kenobi.study(file);
+
+          logger.info("Epoch {} complete in {} min", i, (System.currentTimeMillis() - start) / (1000l * 60));
+          kenobi.save();
+        }
         break;
       case "compose":
-        //java com.zimmermusic.kenobi.Kenobi model compose 300 output/composition.mid
+        //java com.zimmermusic.kenobi.Kenobi resources/model compose 300 output/1
         int numNotes = Integer.parseInt(args[2]);
         String output = args[3];
 

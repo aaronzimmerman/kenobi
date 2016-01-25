@@ -1,8 +1,5 @@
 package com.zimmermusic.kenobi;
 
-/**
- * Created by az on 7/6/15.
- */
 public class Note {
 
     public Note(int midiPitch, int duration) {
@@ -13,6 +10,13 @@ public class Note {
     public int midiPitch;
     public int duration;
 
+  public int getPitch() {
+    return midiPitch;
+  }
+
+  public int getDuration() {
+    return duration;
+  }
     @Override
     public String toString() {
         return "Note{" +

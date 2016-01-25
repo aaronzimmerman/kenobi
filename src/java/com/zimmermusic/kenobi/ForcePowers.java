@@ -1,13 +1,5 @@
 package com.zimmermusic.kenobi;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Random;
-
 import org.apache.commons.io.FileUtils;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -24,6 +16,14 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Random;
 
 
 public class ForcePowers {
@@ -86,7 +86,6 @@ public class ForcePowers {
     INDArray newParams = null;
     try {
       newParams = Nd4j.read(dis);
-
       dis.close();
     } catch (IOException e) {
       e.printStackTrace();

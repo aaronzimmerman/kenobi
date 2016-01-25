@@ -1,16 +1,14 @@
 (ns kenobi.obitwo
-  (:import [com.zimmermusic.kenobi ForcePowers Note])
-  (:use [kenobi.util.midi])
-  )
+  (:import [com.zimmermusic.kenobi Kenobi Note]))
 
 
+;(def notes (parse-midi-file "resources/cs1-1.mid" 1))
+;
+;(def as-vec (for [n notes] [(first (keys (:p n))) (:d n)]))
 
+(def force-powers (Kenobi. "lib/model"))
 
-(def notes (parse-midi-file "resources/cs1-1.mid" 1))
-
-(def as-vec (for [n notes] [(first (keys (:p n))) (:d n)]))
-
-(def force-powers (ForcePowers. ))
+(def note (Note. 60 2))
 
 (defn analyze[notes]
   (doseq [[pitch dur] notes]
