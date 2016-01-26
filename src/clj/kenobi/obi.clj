@@ -1,6 +1,8 @@
 (ns kenobi.obiwan
   (:import [com.zimmermusic.kenobi Kenobi Note])
-  (:use overtone.live))
+  (:use overtone.live)
+  ;(:use overtone.inst.sampled-piano)
+  )
 
 (def force-powers (Kenobi. "lib/model"))
 

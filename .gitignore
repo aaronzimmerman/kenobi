@@ -1,0 +1,16 @@
+
+.DS_Store
+
+.lein-repl-history
+
+kenobi.iml
+
+resources/cs1-1.mid
+
+*.class
+
+target/classes/cs1-1.mid
+
+target/classes/META-INF/maven/kenobi/kenobi/pom.properties
+
+target/test-classes/cs1-1.mid
