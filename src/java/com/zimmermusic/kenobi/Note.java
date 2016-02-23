@@ -1,26 +1,40 @@
 package com.zimmermusic.kenobi;
 
+import com.google.common.collect.Sets;
+
+import java.util.Set;
+
 public class Note {
 
-    public Note(int midiPitch, int duration) {
-        this.midiPitch = midiPitch;
-        this.duration = duration;
-    }
+  public Note(int midiPitch, int duration) {
+      this.pitches = Sets.newHashSet(midiPitch);
 
-    public int midiPitch;
-    public int duration;
-
-  public int getPitch() {
-    return midiPitch;
+      this.duration = duration;
   }
 
-  public int getDuration() {
+  public Note(Set<Integer> pitches, long startEpoch, long duration) {
+    // epoch and duration and in sixteenth notes
+    this.pitches = pitches;
+    this.startEpoch = startEpoch;
+    this.duration = duration;
+  }
+
+  public Set<Integer> pitches;
+  public long duration;
+  public long startEpoch;
+
+
+  public int getPitch() {
+    return pitches.iterator().next();
+  }
+
+  public long getDuration() {
     return duration;
   }
     @Override
     public String toString() {
         return "Note{" +
-                "pitch=" + midiPitch +
+                "pitches=" + pitches +
                 ", duration=" + duration +
                 '}';
     }
@@ -33,17 +47,18 @@ public class Note {
 
     Note note = (Note) o;
 
-    if (midiPitch != note.midiPitch)
+    if (duration != note.duration)
       return false;
-    return duration == note.duration;
+    if (startEpoch != note.startEpoch)
+      return false;
+    return pitches != null ? pitches.equals(note.pitches) : note.pitches == null;
 
   }
 
   @Override public int hashCode() {
-    int result = midiPitch;
-    result = 31 * result + duration;
+    int result = pitches != null ? pitches.hashCode() : 0;
+    result = 31 * result + (int) (duration ^ (duration >>> 32));
+    result = 31 * result + (int) (startEpoch ^ (startEpoch >>> 32));
     return result;
   }
-
-
 }

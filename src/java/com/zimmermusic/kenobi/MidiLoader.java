@@ -13,7 +13,7 @@ import java.util.List;
 
 class MidiLoader {
   /**
-   *loads a midi file from disk and stores all notes in a nested Array List, using the Helper class "Note"
+   *loads a midi file from disk and stores all events in a nested Array List, using the Helper class "Note"
    * needs some cleanup though
    */
   ArrayList<ArrayList<Note>> tracks;
@@ -33,7 +33,6 @@ class MidiLoader {
       Sequence mySeq = MidiSystem.getSequence(myMidiFile);
       trx = mySeq.getTracks();
 
-      //TODO:  how do I handle notes played together
       for (int i = 0; i < trx.length; i++) {
         ArrayList<Note> trackAsList = new ArrayList<Note>();
         tracks.add(trackAsList);

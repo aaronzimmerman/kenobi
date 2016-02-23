@@ -83,14 +83,14 @@ public class Relationship {
   }
 
   public Note apply(Note input) {
-    int pitch = input.midiPitch + this.fromPreviousToRoot;
+    int pitch = input.getPitch() + this.fromPreviousToRoot;
     int duration = ((int)(input.duration * this.durationMultiplier.doubleValue()));
     return new Note(pitch, duration);
   }
 
   public static Relationship ofNotes(Note first, Note second) {
-    int diff = second.midiPitch - first.midiPitch;
-    Fraction duration = new Fraction(second.duration, first.duration);
+    int diff = second.getPitch() - first.getPitch();
+    Fraction duration = new Fraction(second.duration, (int) first.duration);
     //TODO:  handle boundaries
     return new Relationship(diff, duration);
   }

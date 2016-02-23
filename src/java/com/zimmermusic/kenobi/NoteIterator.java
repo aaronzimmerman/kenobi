@@ -104,7 +104,7 @@ public class NoteIterator implements DataSetIterator {
 
     //Randomly select a subset of the file. No attempt is made to avoid overlapping subsets
     // of the file in the same minibatch
-    //eventually I can create a dictionary of possble notes - c4 quarter note, c4 half note, c4 eightnote, etc
+    //eventually I can create a dictionary of possble events - c4 quarter note, c4 half note, c4 eightnote, etc
     //and then feed into the machine the index of the note, lets me predict two variables
     for( int i=0; i<num; i++ ){
       int startIdx = 0;//(int) (rng.nextDouble()*maxStartIdx);

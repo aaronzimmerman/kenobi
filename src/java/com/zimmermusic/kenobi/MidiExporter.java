@@ -40,10 +40,10 @@ public class MidiExporter {
 
     for (Note n : notes) {
       long durationInTicks = n.duration * MidiLoader.TICKS_IN_SIXTEENTH;
-      logger.info("Writing note {} for {} ticks", n.midiPitch, durationInTicks);
-      track.add(createNoteOnEvent(n.midiPitch, currentTick));
+      logger.info("Writing note {} for {} ticks", n.getPitch(), durationInTicks);
+      track.add(createNoteOnEvent(n.getPitch(), currentTick));
       currentTick += durationInTicks;
-      track.add(createNoteOffEvent(n.midiPitch, currentTick-1));
+      track.add(createNoteOffEvent(n.getPitch(), currentTick-1));
 
     }
 

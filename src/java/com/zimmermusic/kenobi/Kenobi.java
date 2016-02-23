@@ -18,13 +18,18 @@ public class Kenobi {
   ForcePowers forcePowers;
 
   public Kenobi(String modelPath) {
-    forcePowers = new LstmForcePowers();
+    int numOutcomes = EventMemory.CAPACITY;
+
+    forcePowers = new LstmForcePowers(numOutcomes);
     forcePowers.load(modelPath);
   }
 
   public void save() {
     logger.info("Done with training, saving network");
     forcePowers.save();
+
+    EventMemory.get().save();
+    logger.info("Event Memory saved");
   }
 
   public void study(String path) {
@@ -59,8 +64,7 @@ public class Kenobi {
 
   public void studyMidiFile(String file) throws MidiUnavailableException, InvalidMidiDataException, IOException {
     forcePowers.study(file);
-
-
+    this.save();
   }
 
   /**
@@ -114,7 +118,7 @@ public class Kenobi {
 //      //Create input for initialization
 //      INDArray initializationInput = Nd4j.zeros(numSamples,numOutcomes, 1);
 //
-//      //MUST be at least two notes
+//      //MUST be at least two events
 //      for( int i=1; i<initialization.size(); i++ ){
 //        Relationship r = Relationship.ofNotes(initialization.get(i-1), initialization.get(i));
 //        int idx = Relationship.indexOf(r);
@@ -163,6 +167,16 @@ public class Kenobi {
 //  }
 
 
+  /*
+    Each tick can trigger a note on or note off, multiple.  So no durations, just on-off for pitches
+
+    chords are a likewise on/off, each pitch, and each diad / triad is given an on and an off event
+    There is also a "nothing" event - meaning nothing happens, events are held or nothing starts (rests)
+    Support for rests
+    build good training set
+
+   */
+
   //java com.zimmermusic.kenobi.Kenobi model train cs1-1.mid
   public static void main(String[] args) throws Exception {
     String modelPath = args[0];
@@ -191,7 +205,7 @@ public class Kenobi {
         int numNotes = Integer.parseInt(args[2]);
         String output = args[3];
 
-        int noteIndex = random.nextInt(Util.NOTES.size());
+        int noteIndex = random.nextInt(EventMemory.CAPACITY);
         List<Note> firstNoteOfComp = Lists.newArrayList(Util.NOTES.get(noteIndex));
 
         List<Note> notes = kenobi.compose2(firstNoteOfComp, numNotes);

@@ -33,7 +33,7 @@ public class RelationshipIterator implements DataSetIterator {
     relationships = loader.getRelationships(track);
 
     if (relationships.size() == 0){
-      logger.error("No notes in track {} of {}", track, filePath);
+      logger.error("No events in track {} of {}", track, filePath);
     }
 
     exampleLength = relationships.size();

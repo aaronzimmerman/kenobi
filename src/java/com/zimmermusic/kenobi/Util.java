@@ -27,7 +27,7 @@ public class Util {
   //and allow tuples
   static {
     int counter = 0;
-    for (int i = 0; i<127; i++) { //available midi notes
+    for (int i = 0; i<127; i++) { //available midi events
       for (int dur : durations) {
         Note n = new Note(i, dur);
         NOTES.add(n);

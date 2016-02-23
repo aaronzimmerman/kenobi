@@ -34,9 +34,9 @@ public class MidiFileNoteIterator implements DataSetIterator {
     notes = loader.trackAsArrayList(track);
 
     if (notes.size() == 0){
-      logger.error("No notes in track {} of {}", track, filePath);
+      logger.error("No events in track {} of {}", track, filePath);
     }
-    logger.info("Found {} notes to study", notes.size());
+    logger.info("Found {} events to study", notes.size());
     exampleLength = notes.size();
   }
 
@@ -53,8 +53,8 @@ public class MidiFileNoteIterator implements DataSetIterator {
   }
 
   public DataSet next(int num) {
-    INDArray input = Nd4j.zeros(new int[]{num,Util.NOTES.size(),exampleLength});
-    INDArray labels = Nd4j.zeros(new int[]{num,Util.NOTES.size(),exampleLength});
+    INDArray input = Nd4j.zeros(new int[]{num,this.numExamples(),exampleLength});
+    INDArray labels = Nd4j.zeros(new int[]{num,this.numExamples(),exampleLength});
 
     //Randomly select a subset of the file. No attempt is made to avoid overlapping subsets
     // of the file in the same minibatch

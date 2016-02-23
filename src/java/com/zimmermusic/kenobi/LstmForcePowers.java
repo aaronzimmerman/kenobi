@@ -33,14 +33,16 @@ public class LstmForcePowers implements ForcePowers {
 
   static Logger logger = LoggerFactory.getLogger(LstmForcePowers.class);
 
-  static int numNotes =  Util.NOTES.size();
-
-  int numOutcomes = Util.NOTES.size();
+  final int numOutcomes;// = Util.NOTES.size();
   static int lstmLayerSize = 1000;
   final Random random = new Random();
 
   static {
     Nd4j.dtype = DataBuffer.Type.DOUBLE;
+  }
+
+  public LstmForcePowers(int numOutcomes) {
+    this.numOutcomes = numOutcomes;
   }
 
   MultiLayerNetwork network;
@@ -52,6 +54,7 @@ public class LstmForcePowers implements ForcePowers {
   private  String netPath(String basePath) {
     return  String.format("%s-net.bin", basePath);
   }
+
 
   public void reset() {
 
@@ -74,7 +77,9 @@ public class LstmForcePowers implements ForcePowers {
     } catch (IOException e) {
       logger.error("Unable to persist model", e);
     }
+
   }
+
 
   public void load(String modelPath) {
     this.basePath = modelPath;
@@ -87,34 +92,30 @@ public class LstmForcePowers implements ForcePowers {
       network = newNetwork();
     }
 
-    logger.info("Loading saved model and parameters...");
-    loadFromDisk(basePath);
-    return;
+
   }
 
   @Override
   public void study(String file) {
-    MidiFileNoteIterator notes = null;
+    MidiEventIterator events = null;
     try {
-      notes = new MidiFileNoteIterator(file, 1);
-    } catch (MidiUnavailableException e) {
-      e.printStackTrace();
-    } catch (InvalidMidiDataException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
+      events = new MidiEventIterator(file); //MidiFileNoteIterator(file, 1);
+    } catch (MidiUnavailableException | InvalidMidiDataException | IOException e) {
       e.printStackTrace();
     }
 
-    logger.info("Studying {}", file);
+    if (events != null) {
+      logger.info("Studying {}", file);
 
-    network.fit(notes);
+      network.fit(events);
+    }
 
     //    List<List<Note>> sample = compose2(1, firstNoteOfComp, 10);
     //    logger.info("Composing melody");
     //    for (Note note : sample.get(0) ) {
     //      logger.info("Pitch: {}, Duration: {}", note.midiPitch, note.duration);
     //    }
-   // notes.reset();	//Reset iterator for another epoch
+   // events.reset();	//Reset iterator for another epoch
   }
 
   @Override
@@ -135,7 +136,7 @@ public class LstmForcePowers implements ForcePowers {
     return Util.NOTES.get(sampledNoteIndex);
   }
 
-  private MultiLayerNetwork loadFromDisk(String basePath) {
+  private MultiLayerNetwork loadFromDisk(String basePath)  {
     // load parameters
     DataInputStream dis = null;
     MultiLayerConfiguration confFromJson;
@@ -163,6 +164,8 @@ public class LstmForcePowers implements ForcePowers {
     savedNetwork.setListeners(new ScoreIterationListener(1));
 
 
+
+
     logger.info("Model loaded");
     return savedNetwork;
   }
@@ -177,7 +180,7 @@ public class LstmForcePowers implements ForcePowers {
         .regularization(true)
         .l2(0.001)
         .list(3)
-        .layer(0, new GravesLSTM.Builder().nIn(numNotes).nOut(lstmLayerSize)
+        .layer(0, new GravesLSTM.Builder().nIn(numOutcomes).nOut(lstmLayerSize)
             .updater(Updater.RMSPROP)
             .activation("tanh").weightInit(WeightInit.DISTRIBUTION)
             .dist(new UniformDistribution(-0.08, 0.08)).build())
@@ -187,7 +190,7 @@ public class LstmForcePowers implements ForcePowers {
             .dist(new UniformDistribution(-0.08, 0.08)).build())
         .layer(2, new RnnOutputLayer.Builder(LossFunction.MCXENT).activation("softmax")        //MCXENT + softmax for classification
             .updater(Updater.RMSPROP)
-            .nIn(lstmLayerSize).nOut(numNotes).weightInit(WeightInit.DISTRIBUTION)
+            .nIn(lstmLayerSize).nOut(numOutcomes).weightInit(WeightInit.DISTRIBUTION)
             .dist(new UniformDistribution(-0.08, 0.08)).build())
         .pretrain(false).backprop(true)
         .build();
